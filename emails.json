@@ -1,0 +1,23 @@
+[
+  {
+    "id": 1,
+    "subject": "email subject foobar",
+    "from": "someone@some.where",
+    "to": "someone@some.where",
+    "date": "2020/08/12"
+  },
+  {
+    "id": 2,
+    "subject": "email subject foobar",
+    "from": "someone@some.where",
+    "to": "someone@some.where",
+    "date": "2020/08/14"
+  },
+  {
+    "id": 3,
+    "subject": "email subject foobar",
+    "from": "someone@some.where",
+    "to": "someone@some.where",
+    "date": "2020/08/16"
+  }
+]
