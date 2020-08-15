@@ -1,22 +1,31 @@
-const fs = require('fs');
+'use strict'
 
-const { ApolloServer } = require('apollo-server');
-
-const emails = require('./emails');
+import fs from 'fs'
+import { ApolloServer } from 'apollo-server'
+import emails from './emails'
 
 const typeDefs = fs.readFileSync('./schema.graphql', 'utf8');
 
-const resolvers = {
-  Query: {
-    emails: () => emails
-  }
-};
+(async () => {
+  
 
-const server = new ApolloServer({
-  typeDefs,
-  resolvers
-});
+  const resolvers = {
+    Subscription: {
+      emailAdded: {
+      }
+    },
+    Query: {
+      emails: () => emails
+    }
+  };
 
-server.listen().then(({ url }) => {
-  console.log(`Server ready at ${url}`);
-});
+  const server = new ApolloServer({
+    typeDefs,
+    resolvers
+  });
+
+  server.listen().then(({ url }) => {
+    console.log(`Server ready at ${url}`);
+  });
+
+})()

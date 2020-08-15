@@ -9,3 +9,7 @@ type Email {
 type Query {
   emails: [Email]!
 }
+
+type Subscription {
+  emailAdded: Email
+}
