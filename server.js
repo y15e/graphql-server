@@ -25,13 +25,13 @@ const typeDefs = fs.readFileSync('./schema.graphql', 'utf8');
 
   const db = client.db(dbName)
   const collection = db.collection('items')
-  const changeStreamIterator = collection.watch()
   
   const resolvers = {
     
     Subscription: {
       emailAdded: {
         subscribe: async function * () {
+          const changeStreamIterator = collection.watch()
 		  while (true) {
 			const result = await changeStreamIterator.next()
 			console.log(result)
