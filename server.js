@@ -35,11 +35,13 @@ const typeDefs = fs.readFileSync('./schema.graphql', 'utf8');
 		  while (true) {
 			const result = await changeStreamIterator.next()
 			console.log(result)
-			yield {
-			  emailAdded: {
-				...result.fullDocument
+            if (result.operationType == 'insert') {
+			  yield {
+			    emailAdded: {
+				  ...result.fullDocument.converted
+			    }
 			  }
-			}
+            }
 		  }
 		}
       }
@@ -60,8 +62,9 @@ const typeDefs = fs.readFileSync('./schema.graphql', 'utf8');
     resolvers
   });
 
-  server.listen().then(({ url }) => {
+  server.listen().then(({ url, subscriptionsUrl }) => {
     console.log(`Server ready at ${url}`);
+    console.log(`Subscriptions ready at ${subscriptionsUrl}`);
   });
 
 })()
