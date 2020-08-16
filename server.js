@@ -4,6 +4,7 @@ import fs from 'fs'
 import * as mongodb from 'mongodb'
 import { ApolloServer } from 'apollo-server'
 import emails from './emails'
+import moment from 'moment-timezone'
 
 // mongo
 const dbName = 'stream-test'
@@ -37,9 +38,7 @@ const typeDefs = fs.readFileSync('./schema.graphql', 'utf8');
 			console.log(result)
             if (result.operationType == 'insert') {
 			  yield {
-			    emailAdded: {
-				  ...result.fullDocument.converted
-			    }
+			    emailAdded: convertDate(result.fullDocument.converted)
 			  }
             }
 		  }
@@ -51,7 +50,7 @@ const typeDefs = fs.readFileSync('./schema.graphql', 'utf8');
       emails: async () => {
         let cursor = await collection.find()
         let docs = await cursor.sort([ [ 'converted.date', -1 ] ]).toArray()
-        let emails = docs.map(doc => doc.converted)
+        let emails = docs.map(doc => convertDate(doc.converted))
         return emails
       }
     }
@@ -68,3 +67,15 @@ const typeDefs = fs.readFileSync('./schema.graphql', 'utf8');
   });
 
 })()
+
+// datetime format
+function convertDate(item) {
+  
+  let now = moment()
+  let date = moment(item.date)
+  let format = (now.diff(date) < 86400000) ? 'HH:mm' : 'MMM DD'
+  
+  item.date = date.utcOffset(9).format(format)
+  
+  return item
+} 

@@ -10,6 +10,7 @@
   "dependencies": {
     "apollo-server": "^2.16.1",
     "graphql": "^15.3.0",
+    "moment-timezone": "^0.5.31",
     "mongodb": "^3.6.0"
   },
   "devDependencies": {
