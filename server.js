@@ -73,7 +73,8 @@ function convertDate(item) {
   
   let now = moment()
   let date = moment(item.date)
-  let format = (now.diff(date) < 86400000) ? 'HH:mm' : 'MMM DD'
+  //let format = (now.diff(date) < 86400000) ? 'HH:mm' : 'MMM DD'
+  let format = date.isSame(now, 'day') ? 'HH:mm' : 'MMM DD'
   
   item.date = date.utcOffset(9).format(format)
   
