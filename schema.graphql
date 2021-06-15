@@ -1,15 +1,52 @@
-type Email {
-  id: ID
-  subject: String
-  from: String
-  to: String
+interface Item {
+  id: ID!
   date: String
 }
 
+type Gmail implements Item {
+  id: ID!
+  date: String
+  labels: [String]
+  from: String
+  to: String
+  subject: String
+  mimeType: String
+  body: String
+}
+
+type Issue implements Item {
+  id: ID!
+  date: String
+  title: String
+  detail: String
+}
+
+type List {
+  id: ID!
+  name: String
+  icon: String
+  tabs: [String]
+  fields: [Field]
+}
+
+type Field {
+  id: ID!
+  name: String
+  type: String
+}
+
 type Query {
-  emails: [Email]!
+  lists: [List]!
+  items(filter: Filter): [Item]!
+  item(id: String): Item
 }
 
 type Subscription {
-  emailAdded: Email
+  items(filter: Filter): [Item]!
+  item(id: String): Item
+}
+
+input Filter {
+  list: String!
+  subject: String
 }

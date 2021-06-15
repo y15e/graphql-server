@@ -7,7 +7,7 @@ import emails from './emails'
 import moment from 'moment-timezone'
 
 // mongo
-const dbName = 'stream-test'
+const dbName = 'listman'
 const mongoUrl = 'mongodb://localhost:27018/' + dbName
       + '?readPreference=secondaryPreferred'
 const mongoOptions = {
@@ -22,36 +22,86 @@ const typeDefs = fs.readFileSync('./schema.graphql', 'utf8');
 
 (async () => {
 
+  // MongoDB
   await client.connect()
-
   const db = client.db(dbName)
   const collection = db.collection('items')
   
+  // Resolvers
   const resolvers = {
-    
+    Item: {
+      __resolveType(item, context, info){
+        if (item.subject) {
+          return 'Gmail'
+        } else {
+          return 'ToDo'
+        }
+      }
+    },
+    Query: {
+      
+      item: async (parent, args, context, info) => {
+        let item = await fetchItem(collection, args.id)
+        return item
+      },
+      
+      items: async (parent, args, context, info) => {
+        console.log('[query]')
+        console.dir(args)
+        let items = await fetchItems(collection, args.filter)
+        return items
+      },
+      
+      lists: () => {
+        return [
+          {
+            id: 'gmail',
+            name: 'Gmail',
+            icon: 'bi bi-envelope'
+          },
+          {
+            id: 'todo',
+            name: 'ToDo',
+            icon: 'bi bi-clipboard-check'
+          }
+        ]
+      }
+      
+    },
     Subscription: {
-      emailAdded: {
-        subscribe: async function * () {
+      items: {
+        subscribe: async function * (parent, args) {
+          console.log('[subscription]')
+          console.dir(args)
           const changeStreamIterator = collection.watch()
 		  while (true) {
 			const result = await changeStreamIterator.next()
-			console.log(result)
-            if (result.operationType == 'insert') {
-			  yield {
-			    emailAdded: convertDate(result.fullDocument.converted)
-			  }
+			console.log('## changeStreamIterator.next()')
+			console.dir(result, {depth:null})
+            
+            let items = await fetchItems(collection, args.filter)
+            yield {
+              items: items
             }
 		  }
 		}
-      }
-    },
-    
-    Query: {
-      emails: async () => {
-        let cursor = await collection.find()
-        let docs = await cursor.sort([ [ 'converted.date', -1 ] ]).toArray()
-        let emails = docs.map(doc => convertDate(doc.converted))
-        return emails
+      },
+      item: {
+        subscribe: async function * (parent, args) {
+          console.log('[subscription]')
+          console.dir(args)
+          const changeStreamIterator = collection.watch()
+		  while (true) {
+			const result = await changeStreamIterator.next()
+			console.log('## changeStreamIterator.next()')
+			console.dir(result)
+            
+            let item = await fetchItem(collection, args.id)
+            yield {
+              item: item
+            }
+		  }
+		}
       }
     }
   };
@@ -68,15 +118,101 @@ const typeDefs = fs.readFileSync('./schema.graphql', 'utf8');
 
 })()
 
+async function fetchItem(collection, id) {
+  
+  // Query
+  let query = {
+    _id: id
+  }
+  console.log('# fetchItem')
+  console.dir(query)
+  
+  // Find
+  let doc = await collection.findOne(query)
+  
+  return convertForView(doc)
+}
+
+async function fetchItems(collection, filter) {
+
+  // Query
+  let query = {}
+  
+  query['raw.labelIds'] = { $nin: ['TRASH'] }
+  
+  if (filter.subject) {
+    query['converted.subject'] = new RegExp(filter.subject, 'i')
+  }
+  console.log('[mongo query]')
+  console.dir(query)
+            
+  // Find
+  let cursor = await collection.find(query)
+  let docs = await cursor.sort([ [ 'converted.date', -1 ] ]).limit(100).toArray()
+  let items = docs.map(doc => convertForView(doc))
+  
+  return items
+}
+
+function convertForView(doc) {
+  
+  //console.dir(doc, {depth: null})
+  
+  let item = doc.converted
+  let now = moment()
+  let date = moment(item.date)
+  let format = date.isSame(now, 'day') ? 'HH:mm' : 'MMM DD'
+  
+  item.date = date.utcOffset(9).format(format)
+  item.labels = doc.raw.labelIds
+
+  //console.log(typeof doc.raw.payload.parts)
+  if (doc.raw.payload.parts) {
+    
+    console.log('length: ' + doc.raw.payload.parts.length)
+    item.body = ''
+    doc.raw.payload.parts.forEach(part => {
+      //console.dir(part)
+      console.log(typeof part.body.data)
+      console.log(part.mimeType)
+      if (part.mimeType == 'text/html') {
+        item.mimeType = 'text/html'
+        if (typeof part.body.data == 'string') {
+          let decoded = Buffer.from(part.body.data, 'base64').toString('utf8')
+          item.body += decoded
+        }
+        /*
+          message.html = sanitizeHtml(message.html, {
+	      allowedTags: false,
+	      allowedAttributes: false
+	      })
+        */
+      }
+    })
+    
+  } else {
+    item.mimeType = doc.raw.payload.mimeType
+    item.body = decodeBase64(doc.raw.payload.body.data)
+  }
+  
+  //console.dir(item)
+  
+  return item
+}
+
+// Base64 decode
+function decodeBase64(data) {
+  return Buffer.from(data, 'base64').toString('utf8')
+}
+
 // datetime format
 function convertDate(item) {
   
   let now = moment()
   let date = moment(item.date)
-  //let format = (now.diff(date) < 86400000) ? 'HH:mm' : 'MMM DD'
   let format = date.isSame(now, 'day') ? 'HH:mm' : 'MMM DD'
   
-  item.date = date.utcOffset(9).format(format)
+  item.dateShow = date.utcOffset(9).format(format)
   
   return item
-} 
+}
