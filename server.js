@@ -49,7 +49,23 @@ const typeDefs = fs.readFileSync('./schema.graphql', 'utf8');
         console.log('[query]')
         console.dir(args)
         let items = await fetchItems(collection, args.filter)
-        return items
+        
+        let pagenation = {
+          from: 1,
+          to: 10,
+          total: 123,
+          hasNext: true,
+          hasPrev: false
+        }
+        
+        let result = {
+          items: items,
+          pagenation: pagenation
+        }
+        
+        console.dir(result, {depth:1});
+        
+        return result
       },
       
       lists: () => {
@@ -80,8 +96,18 @@ const typeDefs = fs.readFileSync('./schema.graphql', 'utf8');
 			console.dir(result, {depth:null})
             
             let items = await fetchItems(collection, args.filter)
+
+            let pagenation = {
+              from: 101,
+              to: 200,
+              total: 1234,
+              hasNext: true,
+              hasPrev: true
+            }
+            
             yield {
-              items: items
+              items: items,
+              pagenation: pagenation
             }
 		  }
 		}
@@ -169,12 +195,12 @@ function convertForView(doc) {
   //console.log(typeof doc.raw.payload.parts)
   if (doc.raw.payload.parts) {
     
-    console.log('length: ' + doc.raw.payload.parts.length)
+    //console.log('length: ' + doc.raw.payload.parts.length)
     item.body = ''
     doc.raw.payload.parts.forEach(part => {
       //console.dir(part)
-      console.log(typeof part.body.data)
-      console.log(part.mimeType)
+      //console.log(typeof part.body.data)
+      //console.log(part.mimeType)
       if (part.mimeType == 'text/html') {
         item.mimeType = 'text/html'
         if (typeof part.body.data == 'string') {

@@ -21,6 +21,19 @@ type Issue implements Item {
   detail: String
 }
 
+type Pagenation {
+  from: Int
+  to: Int
+  total: Int
+  hasNext: Boolean
+  hasPrev: Boolean
+}
+
+type Items {
+  items: [Item]!
+  pagenation: Pagenation
+}
+
 type List {
   id: ID!
   name: String
@@ -37,12 +50,12 @@ type Field {
 
 type Query {
   lists: [List]!
-  items(filter: Filter): [Item]!
+  items(filter: Filter): Items
   item(id: String): Item
 }
 
 type Subscription {
-  items(filter: Filter): [Item]!
+  items(filter: Filter): Items
   item(id: String): Item
 }
 
