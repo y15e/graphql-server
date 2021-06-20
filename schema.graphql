@@ -62,4 +62,5 @@ type Subscription {
 input Filter {
   list: String!
   subject: String
+  page: Int
 }

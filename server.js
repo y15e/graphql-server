@@ -50,22 +50,9 @@ const typeDefs = fs.readFileSync('./schema.graphql', 'utf8');
         console.dir(args)
         let items = await fetchItems(collection, args.filter)
         
-        let pagenation = {
-          from: 1,
-          to: 10,
-          total: 123,
-          hasNext: true,
-          hasPrev: false
-        }
+        console.dir(items, {depth:1});
         
-        let result = {
-          items: items,
-          pagenation: pagenation
-        }
-        
-        console.dir(result, {depth:1});
-        
-        return result
+        return items
       },
       
       lists: () => {
@@ -87,28 +74,18 @@ const typeDefs = fs.readFileSync('./schema.graphql', 'utf8');
     Subscription: {
       items: {
         subscribe: async function * (parent, args) {
-          console.log('[subscription]')
+          console.log('[items.subscribe]')
           console.dir(args)
           const changeStreamIterator = collection.watch()
 		  while (true) {
 			const result = await changeStreamIterator.next()
 			console.log('## changeStreamIterator.next()')
-			console.dir(result, {depth:null})
+			console.dir(result, {depth:1})
             
             let items = await fetchItems(collection, args.filter)
+			//console.dir(items, {depth:1})
 
-            let pagenation = {
-              from: 101,
-              to: 200,
-              total: 1234,
-              hasNext: true,
-              hasPrev: true
-            }
-            
-            yield {
-              items: items,
-              pagenation: pagenation
-            }
+            yield { items: items }
 		  }
 		}
       },
@@ -163,21 +140,35 @@ async function fetchItems(collection, filter) {
 
   // Query
   let query = {}
-  
   query['raw.labelIds'] = { $nin: ['TRASH'] }
-  
   if (filter.subject) {
     query['converted.subject'] = new RegExp(filter.subject, 'i')
   }
   console.log('[mongo query]')
   console.dir(query)
             
+  // Pagenation
+  let pagenation = {
+    from: 1,
+    to: 10,
+    total: 123,
+    hasNext: true,
+    hasPrev: false
+  }
+  
   // Find
   let cursor = await collection.find(query)
-  let docs = await cursor.sort([ [ 'converted.date', -1 ] ]).limit(100).toArray()
+  pagenation.total = await cursor.count()
+  
+  let docs = await cursor.sort([ [ 'converted.date', -1 ] ]).limit(3).toArray()
   let items = docs.map(doc => convertForView(doc))
   
-  return items
+  console.log('length: ' + items.length)
+  
+  return {
+    items: items,
+    pagenation: pagenation
+  }
 }
 
 function convertForView(doc) {
