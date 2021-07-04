@@ -3,8 +3,8 @@
 import fs from 'fs'
 import * as mongodb from 'mongodb'
 import { ApolloServer } from 'apollo-server'
-import emails from './emails'
 import moment from 'moment-timezone'
+import gmail from './gmail'
 
 // mongo
 const dbName = 'listman'
@@ -49,8 +49,7 @@ const typeDefs = fs.readFileSync('./schema.graphql', 'utf8');
         console.log('[query]')
         console.dir(args)
         let items = await fetchItems(collection, args.filter)
-        
-        console.dir(items, {depth:1});
+        //console.dir(items, {depth:1});
         
         return items
       },
@@ -66,6 +65,29 @@ const typeDefs = fs.readFileSync('./schema.graphql', 'utf8');
             id: 'todo',
             name: 'ToDo',
             icon: 'bi bi-clipboard-check'
+          }
+        ]
+      },
+
+      filters: (parent, args) => {
+        console.log('[filters]')
+        console.dir(args)
+        return gmail.filters
+        return [
+          {
+            id: 'inbox',
+            name: 'Inbox',
+            count: 10
+          },
+          {
+            id: 'sent',
+            name: 'Sent',
+            count: 23
+          },
+          {
+            id: 'all',
+            name: 'All Mail',
+            count: 234
           }
         ]
       }
@@ -131,39 +153,58 @@ async function fetchItem(collection, id) {
   console.dir(query)
   
   // Find
+  console.time('find')
   let doc = await collection.findOne(query)
+  console.timeEnd('find')
   
   return convertForView(doc)
 }
 
 async function fetchItems(collection, filter) {
 
+  let limit = 30
+  let skip = filter.page ? limit * (filter.page-1) : 0
+  
   // Query
   let query = {}
-  query['raw.labelIds'] = { $nin: ['TRASH'] }
+  //query['raw.labelIds'] = { $nin: ['TRASH'] }
+  
+  let filterId = filter.filter
+  query = gmail.filters.find(elm => elm.id == filterId).query
+  console.log('[config query]')
+  console.dir(query)
+  
   if (filter.subject) {
     query['converted.subject'] = new RegExp(filter.subject, 'i')
   }
   console.log('[mongo query]')
   console.dir(query)
             
-  // Pagenation
-  let pagenation = {
-    from: 1,
-    to: 10,
-    total: 123,
-    hasNext: true,
-    hasPrev: false
-  }
-  
   // Find
+  console.time('find')
   let cursor = await collection.find(query)
-  pagenation.total = await cursor.count()
+  console.timeEnd('find')
+
+  console.time('count')
+  let count = await cursor.count()
+  console.timeEnd('count')
   
-  let docs = await cursor.sort([ [ 'converted.date', -1 ] ]).limit(3).toArray()
+  console.time('toarray')
+  let docs = await cursor.sort([ [ 'converted.date', -1 ] ]).skip(skip).limit(limit).toArray()
+  console.timeEnd('toarray')
+  
+  console.log('length: ' + docs.length)
+  
   let items = docs.map(doc => convertForView(doc))
   
-  console.log('length: ' + items.length)
+  // Pagenation
+  let pagenation = {
+    from: skip + 1,
+    to: (skip + limit < count) ? (skip + limit) : count,
+    total: count,
+    hasPrev: (filter.page > 1),
+    hasNext: (skip + limit < count)
+  }
   
   return {
     items: items,

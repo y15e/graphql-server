@@ -1,0 +1,35 @@
+{
+  "id": "gmail",
+  "name": "Gmail",
+  "icon": "bi bi-envelope",
+  "fields": [],
+  "filters": [
+    {
+      "id": "inbox",
+      "name": "Inbox",
+      "query": { "raw.labelIds": { "$in": [ "INBOX" ] } },
+      "sort": [],
+      "fields": [ "from", "subject", "labels", "date" ]
+    },
+    {
+      "id": "unread",
+      "name": "Unread",
+      "query": { "raw.labelIds": { "$in": [ "UNREAD" ] } }
+    },
+    {
+      "id": "sent",
+      "name": "Sent",
+      "query": { "raw.labelIds": { "$in": [ "SENT" ] } }
+    },
+    {
+      "id": "all",
+      "name": "All Mail",
+      "query": { "raw.labelIds": { "$nin": [ "TRASH" ] } }
+    },
+    {
+      "id": "trash",
+      "name": "Trash",
+      "query": { "raw.labelIds": { "$in": [ "TRASH" ] } }
+    }
+  ]
+}

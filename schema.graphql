@@ -48,19 +48,30 @@ type Field {
   type: String
 }
 
-type Query {
-  lists: [List]!
-  items(filter: Filter): Items
-  item(id: String): Item
-}
-
-type Subscription {
-  items(filter: Filter): Items
-  item(id: String): Item
-}
-
-input Filter {
+type Filter {
+  id: ID!
   list: String!
+  name: String
+  subject: String
+  count: Int
+}
+
+input FilterInput {
+  list: String!
+  filter: String
   subject: String
   page: Int
 }
+
+type Query {
+  lists: [List]!
+  items(filter: FilterInput): Items
+  item(id: String): Item
+  filters(list_id: String): [Filter]
+}
+
+type Subscription {
+  items(filter: FilterInput): Items
+  item(id: String): Item
+}
+
